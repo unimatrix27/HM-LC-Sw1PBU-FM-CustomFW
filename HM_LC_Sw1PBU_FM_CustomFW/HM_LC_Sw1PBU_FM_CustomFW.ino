@@ -1,8 +1,8 @@
 //- load library's --------------------------------------------------------------------------------------------------------
-#include "HM6TastenSwitch.h"
+#include "HM_LC_Sw1PBU_FM_CustomFW.h"
 #include "Register.h"																	// configuration sheet
 #include <Buttons.h>																	// remote buttons library
-//#include <Relay.h>
+#include <Relay.h>
 
 #ifdef SER_DBG
 //
@@ -56,7 +56,7 @@ HM::s_jumptable jTbl[] = {																// jump table for HM communication
     0x00     }
 };
 Buttons button[3];																		// declare remote button object
-//Relay   relay[2];
+Relay   relay[2];
 
 //- main functions --------------------------------------------------------------------------------------------------------
 void setup() {
@@ -66,7 +66,7 @@ void setup() {
   Serial << pCharPGM(helptext1) << "\r\n";
   Serial << F("freeMem: ") << freeMem() << F(" byte") <<"\r\n";
 #endif
-  hm.cc.config(10,11,12,13,2,3);														// CS, MOSI, MISO, SCK, GDO0, Interrupt
+  hm.cc.config(10,11,12,13,2,0);														// CS, MOSI, MISO, SCK, GDO0, Interrupt
   hm.statusLed.config(0, 0);															// configure the status led pin
   hm.statusLed.set(STATUSLED_1, STATUSLED_MODE_BLINKFAST, 3);
 #ifdef SER_DBG
@@ -80,16 +80,16 @@ void setup() {
 
   hm.setPowerMode(0);																	// power mode for HM device
   hm.init();																			// initialize the hm module
-  //  	button[0].regInHM(0,&hm);															// register buttons in HM per channel, handover HM class pointer
-  //  	button[0].config(15, &buttonEvent);													// configure button on specific pin and handover a function pointer to the main sketch
-  //  	button[1].regInHM(1,&hm);
-  //  	button[1].config(14, &buttonEvent);
-  //  	button[2].regInHM(2,&hm);
-  //  	button[2].config(8, &buttonEvent);
-  //        relay[0].regInHM(3,&hm);                                                                                                  // register relay class in HM to respective channel
-  //        relay[0].config(&initRelay,&switchRelay,2,2);	                                                                          // init function, switch function, min delay, random delay for transmitting status message
-  //        relay[1].regInHM(4,&hm);                                                                                                   
-  //        relay[1].config(&initRelay,&switchRelay,2,2);
+    	button[0].regInHM(0,&hm);															// register buttons in HM per channel, handover HM class pointer
+    	button[0].config(15, &buttonEvent);													// configure button on specific pin and handover a function pointer to the main sketch
+    	button[1].regInHM(1,&hm);
+    	button[1].config(14, &buttonEvent);
+    	button[2].regInHM(2,&hm);
+    	button[2].config(8, &buttonEvent);
+        relay[0].regInHM(3,&hm);                                                                                                  // register relay class in HM to respective channel
+        relay[0].config(&initRelay,&switchRelay,2,2);	                                                                          // init function, switch function, min delay, random delay for transmitting status message
+        relay[1].regInHM(4,&hm);                                                                                                   
+        relay[1].config(&initRelay,&switchRelay,2,2);
 
 
   byte rr = MCUSR;
@@ -100,7 +100,7 @@ void loop() {
 #ifdef SER_DBG
   parser.poll();	
 #endif																	// handle serial input from console
-  //  	hm.poll();																			// poll the HM communication
+    	hm.poll();																			// poll the HM communication
 }
 
 
@@ -119,23 +119,22 @@ void HM_Config_Changed(uint8_t *data, uint8_t len) {
 void buttonEvent(uint8_t idx, uint8_t state) {	
   Serial << F("bE, cnl: ") << idx << F(", state: ") << state << "\r\n";
 }
-/*
+
 void initRelay() {
  	digitalWrite(PIN_RELAY,0);
  	pinMode(PIN_RELAY,OUTPUT);
  }
  void switchRelay(uint8_t on) {
  	if (on) {
- 		digitalWrite(PIN_RELAY,1);
- hm.statusLed.set(STATUSLED_1,STATUSLED_MODE_OFF,0);
+             digitalWrite(PIN_RELAY,1);
+             hm.statusLed.set(STATUSLED_1,STATUSLED_MODE_ON,0);
  
  	} else {
- 		digitalWrite(PIN_RELAY,0);
- hm.statusLed.set(STATUSLED_1,STATUSLED_MODE_ON,0);
- 		
+ 	     digitalWrite(PIN_RELAY,0);
+             hm.statusLed.set(STATUSLED_1,STATUSLED_MODE_OFF,0);	
  	}
  }
- */
+ 
 #ifdef SER_DBG
 //- config functions ------------------------------------------------------------------------------------------------------
 void sendPairing() {																	// send the first pairing request
