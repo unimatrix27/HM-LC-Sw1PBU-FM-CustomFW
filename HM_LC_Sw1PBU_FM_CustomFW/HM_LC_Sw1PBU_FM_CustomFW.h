@@ -9,6 +9,17 @@
 #define PIN_CURRENT 31
 #define PIN_RELAY 12
 
+unsigned long lastCurrentInfoSentTime = 0;
+unsigned long lastCurrentSenseTime = 0;
+unsigned long currentImpulsStart = 0;
+unsigned long lastSensorImpulsLength = 0;
+unsigned long lastCurrentSenseImpulsLength = 0;
+boolean lastCurrentSense = false;
+boolean lastCurrentPin = false;
+const unsigned long minImpulsLength = 5000;
+const uint8_t sendSensorIntervalSec = 150;
+boolean isInitialized = false;
+
 
 
 void HM_Reset_Cmd(uint8_t *data, uint8_t len);
@@ -20,3 +31,4 @@ void resetDevice();
 void sendCmdStr();
 void buttonSend();
 void printConfig();
+void currentPoll();

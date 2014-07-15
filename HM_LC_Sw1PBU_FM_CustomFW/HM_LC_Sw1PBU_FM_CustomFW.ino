@@ -89,7 +89,14 @@ void setup() {
         relay[0].regInHM(3,&hm);                                                                                                  // register relay class in HM to respective channel
         relay[0].config(&initRelay,&switchRelay,2,2);	                                                                          // init function, switch function, min delay, random delay for transmitting status message
         relay[1].regInHM(4,&hm);                                                                                                   
-        relay[1].config(&initRelay,&switchRelay,2,2);
+        relay[1].config(&initRelay,&switchVirtualRelay,2,2);
+
+
+        pinMode(PIN_CURRENT, INPUT);
+        PCMSK0 |= (1<<PCINT0);
+        PCICR |= (1<<PCIE0);
+
+	isInitialized = true;
 
 
   byte rr = MCUSR;
@@ -101,6 +108,7 @@ void loop() {
   parser.poll();	
 #endif																	// handle serial input from console
     	hm.poll();																			// poll the HM communication
+        currentPoll();
 }
 
 
@@ -120,6 +128,32 @@ void buttonEvent(uint8_t idx, uint8_t state) {
   Serial << F("bE, cnl: ") << idx << F(", state: ") << state << "\r\n";
 }
 
+void currentPoll(){
+  	if (millis() - lastCurrentInfoSentTime > sendSensorIntervalSec * 1000) {
+		lastCurrentInfoSentTime = millis();
+                hm.sendSensorData(0, 0, lastSensorImpulsLength/(50*sendSensorIntervalSec), 0, 0); // send message
+                lastSensorImpulsLength = 0;
+	}
+	if (millis() - lastCurrentSenseTime > 500) {
+                cli();
+		lastCurrentSenseTime = millis();
+
+                // Calculate current sense boolean: 500ms*50Hz = 25 Impulses
+                boolean currentSense = lastCurrentSenseImpulsLength > (25 * minImpulsLength);
+                lastCurrentSenseImpulsLength = 0;
+
+                // Act on changes
+                if (currentSense != lastCurrentSense)
+                {
+//                   rl[1].setCurStat(currentSense?3:6); PROBLEM: NO IDEA HOW TO DO THIS IN THE NEW VERSION
+//                  Serial << F("New Powersense: ") << currentSense << "\r\n";
+//                  hm.sendInfoActuatorStatus(4,currentSense?0xC8:0x00,0);
+                  lastCurrentSense = currentSense;
+                }
+                sei();
+	}
+}
+
 void initRelay() {
  	digitalWrite(PIN_RELAY,0);
  	pinMode(PIN_RELAY,OUTPUT);
@@ -134,6 +168,32 @@ void initRelay() {
              hm.statusLed.set(STATUSLED_1,STATUSLED_MODE_OFF,0);	
  	}
  }
+ 
+ void switchVirtualRelay (uint8_t on){
+  // no idea how to do this yet ...
+   
+ }
+ 
+ void currentImpuls()
+{
+  cli();
+  boolean actualCurrentPin = digitalRead(PIN_CURRENT);
+  if (lastCurrentPin == actualCurrentPin) {
+    sei();
+    return;
+  }
+  lastCurrentPin = actualCurrentPin;
+  if (actualCurrentPin) { // Impuls start
+    currentImpulsStart = micros();
+  } else { // Impuls end
+    unsigned long impulsLength = micros() - currentImpulsStart;
+    lastSensorImpulsLength += impulsLength;
+    lastCurrentSenseImpulsLength += impulsLength;
+    currentImpulsStart = 0;
+  }
+  sei();
+  return;
+}
  
 #ifdef SER_DBG
 //- config functions ------------------------------------------------------------------------------------------------------
