@@ -1,0 +1,3 @@
+[submodule "libraries/AskSin"]
+	path = libraries/AskSin
+	url = https://github.com/unimatrix27/AskSin
