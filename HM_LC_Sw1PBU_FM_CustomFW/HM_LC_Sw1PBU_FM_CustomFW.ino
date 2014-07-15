@@ -66,7 +66,7 @@ void setup() {
   Serial << pCharPGM(helptext1) << "\r\n";
   Serial << F("freeMem: ") << freeMem() << F(" byte") <<"\r\n";
 #endif
-  hm.cc.config(10,11,12,13,2,0);														// CS, MOSI, MISO, SCK, GDO0, Interrupt
+  hm.cc.config(4,5,6,7,10,11);														// CS, MOSI, MISO, SCK, GDO0, Interrupt
   hm.statusLed.config(0, 0);															// configure the status led pin
   hm.statusLed.set(STATUSLED_1, STATUSLED_MODE_BLINKFAST, 3);
 #ifdef SER_DBG
