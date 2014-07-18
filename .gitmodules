@@ -1,3 +1,6 @@
 [submodule "libraries/AskSin"]
 	path = libraries/AskSin
 	url = https://github.com/unimatrix27/AskSin
+[submodule "Asksin_OTA_Bootloader"]
+	path = Asksin_OTA_Bootloader
+	url = https://github.com/jabdoa2/Asksin_OTA_Bootloader

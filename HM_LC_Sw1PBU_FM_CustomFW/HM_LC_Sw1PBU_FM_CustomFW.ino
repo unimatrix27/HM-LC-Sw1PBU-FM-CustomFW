@@ -20,22 +20,22 @@ const uint8_t helptext1[] PROGMEM = {													// help text for serial consol
 };
 const InputParser::Commands cmdTab[] PROGMEM = {
   { 
-    'p', 0, sendPairing     }
+    'p', 0, sendPairing       }
   ,
   { 
-    'r', 0, resetDevice     }
+    'r', 0, resetDevice       }
   ,
   { 
-    's', 1, sendCmdStr     }
+    's', 1, sendCmdStr       }
   ,
   { 
-    'b', 1, buttonSend     }
+    'b', 1, buttonSend       }
   ,
   { 
-    'c', 0, printConfig     }
+    'c', 0, printConfig       }
   ,
   { 
-    0     }
+    0       }
 };
 InputParser parser (50, cmdTab);
 #endif
@@ -44,19 +44,19 @@ InputParser parser (50, cmdTab);
 HM::s_jumptable jTbl[] = {																// jump table for HM communication
   // byte3, byte10, byte11, function to call											// 0xff means - any byte
   { 
-    0x01, 0xff, 0x0e, HM_Status_Request     }
+    0x01, 0xff, 0x0e, HM_Status_Request       }
   ,
   { 
-    0x11, 0x04, 0x00, HM_Reset_Cmd     }
+    0x11, 0x04, 0x00, HM_Reset_Cmd       }
   ,
   { 
-    0x01, 0xff, 0x06, HM_Config_Changed     }
+    0x01, 0xff, 0x06, HM_Config_Changed       }
   ,
   { 
-    0x00     }
+    0x00       }
 };
 Buttons button[3];																		// declare remote button object
-Relay   relay[2];
+CurrentSenseRelay   relay[2];
 
 //- main functions --------------------------------------------------------------------------------------------------------
 void setup() {
@@ -80,23 +80,23 @@ void setup() {
 
   hm.setPowerMode(0);																	// power mode for HM device
   hm.init();																			// initialize the hm module
-    	button[0].regInHM(0,&hm);															// register buttons in HM per channel, handover HM class pointer
-    	button[0].config(15, &buttonEvent);													// configure button on specific pin and handover a function pointer to the main sketch
-    	button[1].regInHM(1,&hm);
-    	button[1].config(14, &buttonEvent);
-    	button[2].regInHM(2,&hm);
-    	button[2].config(8, &buttonEvent);
-        relay[0].regInHM(3,&hm);                                                                                                  // register relay class in HM to respective channel
-        relay[0].config(&initRelay,&switchRelay,2,2);	                                                                          // init function, switch function, min delay, random delay for transmitting status message
-        relay[1].regInHM(4,&hm);                                                                                                   
-        relay[1].config(&initRelay,&switchVirtualRelay,2,2);
+  button[0].regInHM(0,&hm);															// register buttons in HM per channel, handover HM class pointer
+  button[0].config(15, &buttonEvent);													// configure button on specific pin and handover a function pointer to the main sketch
+  button[1].regInHM(1,&hm);
+  button[1].config(14, &buttonEvent);
+  button[2].regInHM(2,&hm);
+  button[2].config(8, &buttonEvent);
+  relay[0].regInHM(3,&hm);                                                                                                  // register relay class in HM to respective channel
+  relay[0].config(&initRelay,&switchRelay,2,2);	                                                                          // init function, switch function, min delay, random delay for transmitting status message
+  relay[1].regInHM(4,&hm);                                                                                                   
+  relay[1].config(&initRelay,&switchVirtualRelay,2,2);
 
 
-        pinMode(PIN_CURRENT, INPUT);
-        PCMSK0 |= (1<<PCINT0);
-        PCICR |= (1<<PCIE0);
+  pinMode(PIN_CURRENT, INPUT);
+  PCMSK0 |= (1<<PCINT0);
+  PCICR |= (1<<PCIE0);
 
-	isInitialized = true;
+  isInitialized = true;
 
 
   byte rr = MCUSR;
@@ -107,8 +107,8 @@ void loop() {
 #ifdef SER_DBG
   parser.poll();	
 #endif																	// handle serial input from console
-    	hm.poll();																			// poll the HM communication
-        currentPoll();
+  hm.poll();																			// poll the HM communication
+  currentPoll();
 }
 
 
@@ -129,52 +129,53 @@ void buttonEvent(uint8_t idx, uint8_t state) {
 }
 
 void currentPoll(){
-  	if (millis() - lastCurrentInfoSentTime > sendSensorIntervalSec * 1000) {
-		lastCurrentInfoSentTime = millis();
-                hm.sendSensorData(0, 0, lastSensorImpulsLength/(50*sendSensorIntervalSec), 0, 0); // send message
-                lastSensorImpulsLength = 0;
-	}
-	if (millis() - lastCurrentSenseTime > 500) {
-                cli();
-		lastCurrentSenseTime = millis();
+  if (millis() - lastCurrentInfoSentTime > sendSensorIntervalSec * 1000) {
+    lastCurrentInfoSentTime = millis();
+    hm.sendSensorData(0, 0, lastSensorImpulsLength/(50*sendSensorIntervalSec), 0, 0); // send message
+    lastSensorImpulsLength = 0;
+  }
+  if (millis() - lastCurrentSenseTime > 500) {
+    cli();
+    lastCurrentSenseTime = millis();
 
-                // Calculate current sense boolean: 500ms*50Hz = 25 Impulses
-                boolean currentSense = lastCurrentSenseImpulsLength > (25 * minImpulsLength);
-                lastCurrentSenseImpulsLength = 0;
+    // Calculate current sense boolean: 500ms*50Hz = 25 Impulses
+    boolean currentSense = lastCurrentSenseImpulsLength > (25 * minImpulsLength);
+    lastCurrentSenseImpulsLength = 0;
 
-                // Act on changes
-                if (currentSense != lastCurrentSense)
-                {
-//                   rl[1].setCurStat(currentSense?3:6); PROBLEM: NO IDEA HOW TO DO THIS IN THE NEW VERSION
-//                  Serial << F("New Powersense: ") << currentSense << "\r\n";
-//                  hm.sendInfoActuatorStatus(4,currentSense?0xC8:0x00,0);
-                  lastCurrentSense = currentSense;
-                }
-                sei();
-	}
+    // Act on changes
+    if (currentSense != lastCurrentSense)
+    {
+                         relay[1].setCurStat(currentSense?3:6); 
+      //                  Serial << F("New Powersense: ") << currentSense << "\r\n";
+      //                  hm.sendInfoActuatorStatus(4,currentSense?0xC8:0x00,0);
+      lastCurrentSense = currentSense;
+    }
+    sei();
+  }
 }
 
 void initRelay() {
- 	digitalWrite(PIN_RELAY,0);
- 	pinMode(PIN_RELAY,OUTPUT);
- }
- void switchRelay(uint8_t on) {
- 	if (on) {
-             digitalWrite(PIN_RELAY,1);
-             hm.statusLed.set(STATUSLED_1,STATUSLED_MODE_ON,0);
- 
- 	} else {
- 	     digitalWrite(PIN_RELAY,0);
-             hm.statusLed.set(STATUSLED_1,STATUSLED_MODE_OFF,0);	
- 	}
- }
- 
- void switchVirtualRelay (uint8_t on){
-  // no idea how to do this yet ...
-   
- }
- 
- void currentImpuls()
+  digitalWrite(PIN_RELAY,0);
+  pinMode(PIN_RELAY,OUTPUT);
+}
+void switchRelay(uint8_t on) {
+  if (on) {
+    digitalWrite(PIN_RELAY,1);
+    hm.statusLed.set(STATUSLED_1,STATUSLED_MODE_ON,0);
+
+  } 
+  else {
+    digitalWrite(PIN_RELAY,0);
+    hm.statusLed.set(STATUSLED_1,STATUSLED_MODE_OFF,0);	
+  }
+}
+
+void switchVirtualRelay (uint8_t on){
+  if (! isInitialized) return;
+  relay[0].virtualSwitch();
+}
+
+void currentImpuls()
 {
   cli();
   boolean actualCurrentPin = digitalRead(PIN_CURRENT);
@@ -185,7 +186,8 @@ void initRelay() {
   lastCurrentPin = actualCurrentPin;
   if (actualCurrentPin) { // Impuls start
     currentImpulsStart = micros();
-  } else { // Impuls end
+  } 
+  else { // Impuls end
     unsigned long impulsLength = micros() - currentImpulsStart;
     lastSensorImpulsLength += impulsLength;
     lastCurrentSenseImpulsLength += impulsLength;
@@ -194,7 +196,7 @@ void initRelay() {
   sei();
   return;
 }
- 
+
 #ifdef SER_DBG
 //- config functions ------------------------------------------------------------------------------------------------------
 void sendPairing() {																	// send the first pairing request
@@ -226,5 +228,6 @@ void printConfig() {
 
 
 #endif
+
 
 
